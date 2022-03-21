@@ -36,5 +36,5 @@ type Tab struct {
 	LayoutOpts          struct{} `json:"layout_opts"`
 	LayoutState         struct{} `json:"layout_state"`
 	Title               string   `json:"title"`
-	Window              []Window
+	Windows             []Window `json:"windows"`
 }
