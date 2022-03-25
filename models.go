@@ -1,5 +1,9 @@
 package main
 
+type ProgramArguments struct {
+	Vim bool
+}
+
 type OSWindow struct {
 	Id               int    `json:"id"`
 	IsFocused        bool   `json:"is_focused"`
