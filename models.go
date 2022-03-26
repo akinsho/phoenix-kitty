@@ -1,7 +1,9 @@
 package main
 
-type ProgramArguments struct {
+type ProgramArgs struct {
 	Vim bool
+	Source string
+	Filename string
 }
 
 type OSWindow struct {

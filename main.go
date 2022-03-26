@@ -8,21 +8,42 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 )
 
 var vimModeline = "# vim:fileencoding=utf-8:ft=kitty"
 
 func main() {
-	var vim bool
-	flag.BoolVar(&vim, "vim", false, "prepare the output for use in nvim.")
+	args := ProgramArgs{}
+	flag.BoolVar(&args.Vim, "vim", false, "prepare the output for use in nvim.")
+	flag.StringVar(&args.Filename, "filename", "session.conf", "prepare the output for use in nvim.")
+	flag.StringVar(&args.Source, "source", "", "kitty session json file to restore from")
 	flag.Parse()
 
-	filename := flag.Arg(0)
-	if filename == "" {
-		log.Fatal("No file path was passed in!")
+	var bytes []byte
+	if len(args.Source) > 0 {
+		bytes = readSessionFromFile(args.Source)
+	} else {
+		bytes = readSessionFromKitty()
 	}
+	var state []OSWindow
+	err := json.Unmarshal(bytes, &state)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	writeSessionFile(state, args)
+}
 
+func readSessionFromKitty() []byte {
+	rsp, err := exec.Command("kitty", "@", "ls").Output()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return rsp
+}
+
+func readSessionFromFile(filename string) []byte {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -33,23 +54,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-
-	var state []OSWindow
-	err = json.Unmarshal(bytes, &state)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	writeKittySessionFile(state, ProgramArguments{vim})
+	return bytes
 }
 
-func writeKittySessionFile(state []OSWindow, opts ProgramArguments) {
-	// Don't try to write if the file will be empty
+// writeSessionFile Creates a session file based on kitty's current state
+func writeSessionFile(state []OSWindow, args ProgramArgs) {
 	if len(state) == 0 {
 		log.Fatal("The kitty session file is empty!")
 	}
 
-	file, err := os.Create("session.conf")
+	file, err := os.Create(args.Filename)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -66,7 +80,7 @@ func writeKittySessionFile(state []OSWindow, opts ProgramArguments) {
 			lines = append(lines, "\n")
 		}
 	}
-	if opts.Vim {
+	if args.Vim {
 		lines = append(lines, vimModeline)
 	}
 	for _, line := range lines {
